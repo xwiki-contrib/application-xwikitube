@@ -172,13 +172,20 @@ Attachment:
     <property>
       <code>// Configure require.js to use video.js and dash.js (https://github.com/videojs/video.js/blob/stable/docs/guides/setup.md)
 // (https://github.com/Dash-Industry-Forum/dash.js)
+
+// All video.js and dash.js js/css files are currently added as attachments to an XWiki document (it should be webjars)
+// because XWikiTube depends on the last version of video-macro and the last version of video macro is not yet released.
+var videojsURL = "$xwiki.getDocument('XWikiTubeCode.DashJsPlugins').getAttachmentURL('video.js', 'download')";
+var videojsCssURL = "$xwiki.getDocument('XWikiTubeCode.DashJsPlugins').getAttachmentURL('video-js.min.css', 'download')";
+var videojsSwfURL = "$xwiki.getDocument('XWikiTubeCode.DashJsPlugins').getAttachmentURL('video-js.swf', 'download')";
+var dashwebmURL = "$xwiki.getDocument('XWikiTubeCode.DashJsPlugins').getAttachmentURL('dash.webm.min.js', 'download')";
+var videojsdashjsURL = "$xwiki.getDocument('XWikiTubeCode.DashJsPlugins').getAttachmentURL('videojs-tech-dashjs.js', 'download')";
+
 require.config({
    "paths": { 
-            "video-js": "$services.webjars.url('video-js/4.11.4/video.js')",
+            //"video-js": "$services.webjars.url('video-js/4.11.4/video.js')",
             //"dash-webm": "$services.webjars.url('dash.js/1.5-SNAPSHOT/contrib/webmjs/dash.webm.min.js')",
-            "dash-webm": "$xwiki.getDocument('XWikiTubeCode.DashJsPlugins').getAttachmentURL('dash.webm.min', 'download')",
             //"videojs-dashjs": "$services.webjars.url('dash.js/1.5-SNAPSHOT/contrib/videojs/videojs-tech-dashjs.js')"
-            "videojs-dashjs": "$xwiki.getDocument('XWikiTubeCode.DashJsPlugins').getAttachmentURL('videojs-tech-dashjs', 'download')"
             }
 });
 
@@ -208,10 +215,12 @@ function setupPlayer(videoDashID) {
    }
 }
 
-require(['jquery', 'dash-webm', 'video-js'], function($, dashwebm, videojs){
-   loadCss("$services.webjars.url('video-js/4.11.4/video-js.min.css')");
-   videojs.options.flash.swf = "$services.webjars.url('video-js/4.11.4/video-js.swf')";
-   require(["videojs-dashjs"], function(videojsdash){
+require(['jquery', dashwebmURL, videojsURL], function($, dashwebm, videojs){
+   //loadCss("$services.webjars.url('video-js/4.11.4/video-js.min.css')");
+   loadCss(videojsCssURL);
+   //videojs.options.flash.swf = "$services.webjars.url('video-js/4.11.4/video-js.swf')";
+   videojs.options.flash.swf = videojsSwfURL;
+   require([videojsdashjsURL], function(videojsdash){
       $(function(){
          // Initialize DASH videos
          $("video.dashvideo").each(function(index){
