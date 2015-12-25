@@ -122,7 +122,28 @@
       <cache>long</cache>
     </property>
     <property>
-      <code>// Configure require.js to use Bootstrap FileStyle (https://github.com/markusslima/bootstrap-filestyle)
+      <code>#set($ajaxActionsURL = $xwiki.getURL("XWikiTubeCode.VideoUpload", "view", "xpage=plain&amp;outputSyntax=plain"))
+var ajaxActionsURL = "$ajaxActionsURL";
+var initVideoEncodingURL = ajaxActionsURL + "&amp;action=initVideoEncoding";
+var videoEncodeURL = ajaxActionsURL + "&amp;action=videoEncode";
+
+var messages = {
+  encode_succes: "The encoding process has been performed successfully.",
+  encode_error: "An error occurred during the video encoding.",
+  init_success: "The initialization phase succeed.",
+  init_fail: "The initialization phase has failed.",
+  retry: "please retry!",
+  attachment_not_found: "No such attachment!",
+  document_not_found: "No such document!",
+  start_encoding: "Starting video encoding.",
+  view_video: "View the video",
+  attach_files: "Attaching encoded files to the document.",
+  complete: "Complete",
+  in_progress: "In progress",
+  waiting_transcoding_worker: "Waiting for the transcoding worker"
+};
+
+// Configure require.js to use Bootstrap FileStyle (https://github.com/markusslima/bootstrap-filestyle)
 require.config({
    "paths": { "bootstrap-filestyle": "$services.webjars.url('bootstrap-filestyle/1.2.1/src/bootstrap-filestyle.min.js')" }
 });
@@ -132,11 +153,97 @@ var fileUploader;
 if(targetInput) {
   fileUploader = new XWiki.FileUploader(targetInput, {
     autoUpload: true,
-    progressAutohide: false
+    progressAutohide: false,
+    fileFilter: /video\/.*/
   });
 }
 
 require(['jquery', 'bootstrap-filestyle'], function($, btsfs){
+function displaySuccess(selector, msg){
+   $(selector).html('&lt;p class="bg-success"&gt;' + msg + '&lt;/p&gt;')
+}
+
+function displayError(selector, msg){
+   $(selector).html('&lt;p class="bg-danger"&gt;' + msg + '&lt;/p&gt;')
+}
+
+function displayAjaxLoader(){;
+   return '&lt;span class="glyphicon glyphicon-refresh glyphicon-refresh-animate"&gt;&lt;/span&gt;';
+}
+
+function displayProgressBar(val){
+var html = '&lt;div class="progress"&gt;';
+  html += '&lt;div class="progress-bar progress-bar-success progress-bar-striped" role="progressbar" aria-valuenow="' + val + '" aria-valuemin="0" aria-valuemax="100" style="width: ' + val + '%"&gt;';
+  html += '&lt;span class="sr-only"&gt;' + val + '% Complete (success)&lt;/span&gt;';
+  html += val +'%';
+  html += '&lt;/div&gt;';
+  html += '&lt;/div&gt;';
+  return html;
+}
+
+function displayCommandsProgress(commands, status, resultsContainer){
+   var details = "";
+   if(status == "complete"){
+      details = messages.complete;
+   }
+   else if(status == "waiting"){
+      details = messages.waiting_transcoding_worker;
+   }
+   else if(status == "running"){
+      details = messages.in_progress;
+   }
+
+   for(var i= 0;i&lt;commands.size();i++){
+      var cmd = commands[i];
+      var label = cmd.stream;
+      if(label != "audio" &amp;&amp; label != "manifest"){
+         label = "Video" + " " + label;
+      }
+      else if(label == "manifest"){
+         label = "Manifest file";
+      }
+      resultsContainer.append('&lt;div&gt;&lt;strong&gt;' + label + ': &lt;/strong&gt;&lt;span class="progress-details"&gt;(' + details + ')&lt;/span&gt;' + displayProgressBar(cmd.progress) + '&lt;/div&gt;');
+   }
+}
+
+// Function to check the video incoding progress
+function checkVideoEncodingProcess(videoDocRef, videoName){
+   var resultsContainer = $("#encoding-progress");
+   var timer = setInterval(function(){
+      $.ajax({
+         url: videoEncodeURL + "&amp;videoDocRef=" + videoDocRef + "&amp;videoName=" + videoName,
+         dataType: 'json'
+      })
+      .done(function(rep){
+         resultsContainer.html("");
+         if(rep){
+            if(rep.completeCmds &amp;&amp; rep.completeCmds.size() &gt; 0){
+               displayCommandsProgress(rep.completeCmds, "complete", resultsContainer);
+            }
+            if(rep.runingCmds &amp;&amp; rep.runingCmds.size() &gt; 0){
+               displayCommandsProgress(rep.runingCmds, "running", resultsContainer);
+            }
+            if(rep.waitingCmds &amp;&amp; rep.waitingCmds.size() &gt; 0){
+               displayCommandsProgress(rep.waitingCmds, "waiting", resultsContainer);
+            }
+         }
+         if(rep.completeCmds.size() &gt; 0 &amp;&amp; rep.waitingCmds.size() == 0 &amp;&amp; rep.runingCmds.size() == 0){
+            clearTimeout(timer);
+            // Attach the generated video/audio/manifest files to the document
+            $(resultsContainer).append('&lt;div&gt;' + displayAjaxLoader() + ' ' + messages.attach_files + ' ...&lt;/div&gt;');
+            $.ajax({
+               url: ajaxActionsURL + '&amp;action=attachEncodedFiles'  + "&amp;videoDocRef=" + videoDocRef + "&amp;videoName=" + videoName,
+               dataType: 'json'
+            }).done(function(rep){
+               if(rep){
+                  $(resultsContainer).html('&lt;div class="box successmessage"&gt;' + messages.encode_succes + ' &lt;a href="javascript: location.reload(true)"&gt;' + messages.view_video + '&lt;/a&gt;&lt;/div&gt;');
+               }
+            });
+         }
+      });
+   }, 5000);
+}
+
 // Initialize the video upload inputs
 $(".upload-video-input").filestyle({buttonName: "btn-primary", input: false, buttonText: "Select video", iconName: "glyphicon glyphicon-facetime-video", badge: false});
 
@@ -156,6 +263,12 @@ $("input.encode-video-chk").click(function(){
 });
 
 $(function(){
+  // Check the encoding progress
+  if($("#encodingInProgress").size() &gt; 0){
+    var videoDocRef = $("#videoDocRef").val();
+    var videoName = $("#videoName").val();
+    checkVideoEncodingProcess(videoDocRef, videoName);
+  }
   if($("#videoTargetDoc").size() &gt; 0){
     var targetDocRef = $("#videoTargetDoc").val();
     var form = $("#videoTargetDoc").closest("form");
@@ -167,6 +280,48 @@ $(function(){
        fileUploader.formData.action = formAction;
     }
   }
+
+  // Initialize encode button
+  $("body").on("click", "#encode-video-btn", function(event){
+     $("#videoInput").attr("disabled", true);
+     $("#video-upload-form .bootstrap-filestyle").remove();
+     $("#video-upload-form .video-uploader-container").css("padding-top", "0");
+     $("#video-upload-form .file-info, #video-upload-form .progress-info").hide();
+     $("#video-upload-form .upload-status").removeClass("upload-done");
+     $("#video-upload-form .upload-status").addClass("upload-done-status");
+     $("#video-upload-form .buttonwrapper").hide();
+     require(['xwiki-meta'], function (xm) {
+        var videoName = $("#video-select").val();
+        var videoDocRef = xm.document;
+        $("#encoding-progress").show();
+        $("#encode-video-btn").attr("disabled", true);
+        $.ajax({
+           url: initVideoEncodingURL,
+           method: "POST",
+           dataType: "json",
+           data: ({videoDocRef: videoDocRef, videoName: videoName})
+        })
+        .done(function(rep){
+           $("#select-video-blk").hide();
+           if(rep.initStatus){
+              displaySuccess("#encoding-progress", messages.init_success + " ... " + displayAjaxLoader() + " " + messages.start_encoding);
+              // Starting the video transcoding process
+              checkVideoEncodingProcess(videoDocRef, videoName);
+           }
+           else
+           {
+              var errorMsg = messages.init_fail;
+              if(rep.error != ""){
+                 errorMsg += ", " + messages[rep.error];
+                 displayError("#encoding-progress", errorMsg);
+              }
+           }
+        }).fail(function(xhr, textStatus, errorThrown) {
+           displayError("#encoding-progress", messages.init_fail + ", " + messages.retry);
+           $("#encode-video-btn").attr("disabled", false);
+        });
+     });
+  });
 });
 });</code>
     </property>
@@ -300,6 +455,38 @@ $(function(){
 .errormsg{
    color: red;
    font-size: 0.9em;
+}
+.bg-success, .bg-danger{
+   padding: 15px;
+}
+.progress{
+   width: 50%;
+   height: 20px;
+}
+.progress .progress-bar {
+    font-size: 14px !important;
+    line-height: 14px !important;
+    padding: 2px !important;
+}
+.progress-details{
+   font-size: 12px;
+   font-style: italic;
+}
+.upload-done-status{
+   background: none;
+   padding: 0;
+}
+.glyphicon-refresh-animate {
+    -animation: spin .7s infinite linear;
+    -webkit-animation: spin2 .7s infinite linear;
+}
+@-webkit-keyframes spin2 {
+    from { -webkit-transform: rotate(0deg);}
+    to { -webkit-transform: rotate(360deg);}
+}
+@keyframes spin {
+    from { transform: scale(1) rotate(0deg);}
+    to { transform: scale(1) rotate(360deg);}
 }</code>
     </property>
     <property>
@@ -430,18 +617,33 @@ $(function(){
     <className>XWiki.WikiMacroClass</className>
     <guid>e703219d-228a-4529-af05-32062946ff4b</guid>
     <property>
-      <code>{{velocity}}
+      <code>{{include reference="XWikiTubeCode.Macros"/}}
+
+{{velocity}}
 #set($discard = $xwiki.jsx.use("XWikiTubeCode.VideoUpload"))
 #set($discard = $xwiki.ssx.use("XWikiTubeCode.VideoUpload"))
-#set($actionURL = $xwiki.getURL("XWikiTubeCode.VideoUpload", "view", "xpage=plain&amp;action=uploadVideo"))
+###set($actionURL = $xwiki.getURL("XWikiTubeCode.VideoUpload", "view", "xpage=plain&amp;action=uploadVideo"))
+#set($actionURL = $doc.getURL("upload"))
+#set($xredirectURL = $xwiki.getURL("XWikiTubeCode.VideoUpload", "view", "xpage=plain&amp;action=selectVideo&amp;videoDocRef=${doc.getDocumentReference()}"))
 #set($videoUploader = $xwiki.parseGroovyFromPage("XWikiTubeCode.VideoUploadGroovy"))
 #set($discard = $videoUploader.init($xwiki, $xcontext, $services))
 ## Check FFmpeg installation
 #set($ffmpeg = $videoUploader.mediaTranscoder.checkFFmpeg())
+##check if there videos already attached the to document
+#set($attachments = $doc.getAttachmentList())
+#set($videoAttachments = [])
+#foreach($att in $attachments)
+   #if($att.getMimeType().contains("video"))
+      #set($discard = $videoAttachments.add($att))
+   #end
+#end
 {{html}}
-&lt;form action="$actionURL"&gt;
+#if($videoAttachments.size() == 0)
+&lt;form action="$actionURL" id="video-upload-form" enctype="multipart/form-data" method="post"&gt;
 &lt;div class="video-uploader-container"&gt;
-   &lt;input type="file" id="videoInput" name="videoInput" class="upload-video-input"/&gt;
+   &lt;input type="file" id="videoInput" name="filepath" class="upload-video-input"/&gt;
+   &lt;input type="hidden" name="form_token" value="$services.csrf.getToken()" /&gt;
+   &lt;input type="hidden" name="xredirect" value="$xredirectURL" id="video-xredirect"/&gt;
    #if ("$!xcontext.macro.params.targetDoc" != '' &amp;&amp; $xwiki.exists($xcontext.macro.params.targetDoc))
       &lt;input type="hidden" id="videoTargetDoc" value="$xcontext.macro.params.targetDoc"/&gt;
    #end
@@ -454,6 +656,9 @@ $(function(){
 &lt;/div&gt;
 &lt;/form&gt;
 {{/html}}
+#else
+   #displayVideoEncodeForm($videoAttachments){{/html}}
+#end
 {{/velocity}}</code>
     </property>
     <property>
@@ -556,6 +761,7 @@ If this parameter is not mentioned when a document is created for each video.</d
 #* Upload and transcode files *#
 #set($videoUploader = $xwiki.parseGroovyFromPage("XWikiTubeCode.VideoUploadGroovy"))
 #set($discard = $videoUploader.init($xwiki, $xcontext, $services))
+#set($discard = $xcontext.put("videoUploader", $videoUploader))
 #set($action = $request.action)
 
 #if ("$!action" != '')
@@ -658,8 +864,112 @@ If this parameter is not mentioned when a document is created for each video.</d
          #set($rep = $videoUploader.deleteMedia($mediaDocRef))
          $rep
       #end
+   #elseif($action == 'selectVideo')
+      #if("$!request.videoDocRef" != "" &amp;&amp; $xwiki.exists($request.videoDocRef))
+         #set($videoDocRef = $request.videoDocRef)
+         #set($videoDoc = $xwiki.getDocument($videoDocRef))
+         #set($attachments = $videoDoc.getAttachmentList())
+         #set($videoAttachments = [])
+         #foreach($att in $attachments)
+            #if($att.getMimeType().contains("video"))
+               #set($discard = $videoAttachments.add($att))
+            #end
+         #end
+         {{html}}#displayVideoEncodeForm($videoAttachments){{/html}}
+      #end
+   #elseif($action == 'initVideoEncoding')
+      #if("$!request.videoDocRef" != '' &amp;&amp; $xwiki.exists($request.videoDocRef) &amp;&amp; "$!request.videoName" != '')
+         #set($videoDocRef = $request.videoDocRef)
+         #set($videoName = $request.videoName)
+         #set($rep = $videoUploader.encodeAttachmentVideo($videoDocRef, $videoName))
+         {"initStatus": $rep.ret, "error": "$!rep.error"}
+      #end
+   #elseif($action == 'videoEncode')
+      #if("$!request.videoDocRef" != '' &amp;&amp; $xwiki.exists($request.videoDocRef) &amp;&amp; "$!request.videoName" != '')
+         #set($videoDocRef = $request.videoDocRef)
+         #set($videoName = $request.videoName)
+         #set($videoDoc = $xwiki.getDocument($videoDocRef))
+         #set($waitingCommands = $videoDoc.getObjects("XWikiTubeCode.CommandClass", "status", "waiting"))
+         #set($completeCommands = $videoDoc.getObjects("XWikiTubeCode.CommandClass", "status", "complete"))
+         #set($runingCommands = $videoDoc.getObjects("XWikiTubeCode.CommandClass", "status", "transcoding"))
+
+         ## Check waiting commands
+         #set($waitingCmdsJSON = [])
+         #if($waitingCommands.size() &gt; 0)
+            ## Check if there is no runing command and check also if FFmpeg is not runing
+            #set($ffmpegRunning = $videoUploader.mediaTranscoder.checkFFmpegRunning())
+            #if(!$ffmpegRunning &amp;&amp; $runingCommands.size() == 0)
+               ## Start a new command
+               #set($nextCmd = $waitingCommands[0])
+               #if($nextCmd.outputFile != "" &amp;&amp; !$nextCmd.outputFile.contains("manifest"))
+                  ## video and audio streams commands
+                  #set($rep = $videoUploader.commandRunner.run(["bash", "-c", $nextCmd.getValue("cmd")], '', 2147483647))
+                  ## Update the status of the command object
+                  #set($cmdObj = $videoDoc.getObject("XWikiTubeCode.CommandClass", "outputFile", $nextCmd.outputFile))
+                  #if($cmdObj)
+                     #set($discard = $cmdObj.set("status", "transcoding"))
+                     #set($discard = $videoDoc.save())
+                  #end
+               #elseif($nextCmd.outputFile.contains("manifest"))
+                  ## Manifest file command
+                  ## Generate the manifest command and update the command object
+                  #set($manifestCmd = $videoUploader.mediaTranscoder.generateDASHManifestCommand($nextCmd.getValue("workDir")))
+                  #set($rep = $videoUploader.commandRunner.run(["bash", "-c", $manifestCmd], '', 2147483647))
+                  ## Update the status/cmd properties of the command object
+                  #set($cmdObj = $videoDoc.getObject("XWikiTubeCode.CommandClass", "outputFile", $nextCmd.outputFile))
+                  #if($cmdObj)
+                     #set($discard = $cmdObj.set("status", "transcoding"))
+                     #set($discard = $cmdObj.set("cmd", $manifestCmd))
+                     #set($discard = $videoDoc.save())
+                  #end
+               #end
+            #end
+            #foreach($cmd in $waitingCommands)
+               #set($discard = $waitingCmdsJSON.add({"progress": 0, "stream": $cmd.outputFile.replace("_output.txt", "")}))
+            #end
+         #end
+
+         ## Check runing commands
+         #set($runingCmdsJSON = [])
+         #foreach($cmd in $runingCommands)
+            #set($outputFilePath = "${cmd.workDir}/${cmd.outputFile}")
+            #set($progressRep = $videoUploader.checkEncodingProgress($outputFilePath, $cmd.getValue("duration")))
+            #if($progressRep.status == "end") ## Command complete
+               ## Update the command object
+               #set($cmdObj = $videoDoc.getObject("XWikiTubeCode.CommandClass", "outputFile", $cmd.outputFile))
+               #if($cmdObj)
+                  #set($discard = $cmdObj.set("status", "complete"))
+                  #set($discard = $videoDoc.save())
+               #end
+               #set($discard = $runingCmdsJSON.add({"progress": 100, "stream": $cmd.outputFile.replace("_output.txt", "")}))
+            #else
+               #set($discard = $runingCmdsJSON.add({"progress": $progressRep.progress, "stream": $cmd.outputFile.replace("_output.txt", "")}))
+            #end
+         #end
+         ##
+
+         ## Check complete commands
+         #set($completeCmdsJSON = [])
+         #foreach($cmd in $completeCommands)
+            #set($discard = $completeCmdsJSON.add({"progress": 100, "stream": $cmd.outputFile.replace("_output.txt", "")}))
+         #end
+         ##
+         $jsontool.serialize({"waitingCmds": $waitingCmdsJSON, "completeCmds": $completeCmdsJSON, "runingCmds": $runingCmdsJSON})
+      #end
+   #elseif($action == 'attachEncodedFiles')
+      #if("$!request.videoDocRef" != '' &amp;&amp; $xwiki.exists($request.videoDocRef) &amp;&amp; "$!request.videoName" != '')
+         #set($videoDocRef = $request.videoDocRef)
+         #set($videoName = $request.videoName)
+         #set($videoDoc = $xwiki.getDocument($videoDocRef))
+         #set($originalVideoObj = $videoDoc.getObject("XWikiTubeCode.MediaClass", "original", 1))
+         #if($originalVideoObj &amp;&amp; $originalVideoObj.getValue("name") == $videoName &amp;&amp; $originalVideoObj.getValue("encoded") != 1)
+            ## Start files attachments
+            #set($videoDir = $originalVideoObj.getValue("dirPath"))
+            #set($rep = $videoUploader.attachEncodingFilesToDoc($videoDir, $videoDocRef, $videoName))
+            $rep
+         #end
+      #end
    #end
 #end
-
 {{/velocity}}</content>
 </xwikidoc>
