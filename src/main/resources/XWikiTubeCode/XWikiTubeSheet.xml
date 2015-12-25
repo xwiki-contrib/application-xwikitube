@@ -460,7 +460,7 @@
           &lt;/div&gt;
        #end
     #end
-    #if ( ($xcontext.action == "edit") || ($xcontext.action == "view" &amp;&amp; $originalMediaObj))
+    #if ( ($xcontext.action == "edit"))
     (% class="xform video-advanced" %)
     (((
     ; &lt;label for="XWikiTubeCode.XWikiTubeClass_0_title"&gt;$escapetool.xml($doc.displayPrettyName('title', false, false))&lt;/label&gt;
