@@ -408,6 +408,8 @@ class MediaTranscodeClass
       cmdAL.add('-s');
       cmdAL.add(options.width.toString() + "x" + options.height.toString());
       // other parameters
+      cmdAL.add('-ar');
+      cmdAL.add('44100');
       cmdAL.add('-f');
       cmdAL.add('flv');
       // Target video name
