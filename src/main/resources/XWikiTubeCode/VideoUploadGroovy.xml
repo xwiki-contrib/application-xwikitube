@@ -280,6 +280,7 @@ class VideoUploadClass
             if(videoInfo.duration){videoObj.set("duration", videoInfo.duration);}
             if(videoInfo.bitrate){videoObj.set("bitrate", videoInfo.bitrate);}
             if(videoInfo.original){videoObj.set("original", videoInfo.original);}
+            if(videoInfo.encoded){videoObj.set("encoded", videoInfo.encoded);}
             videoDoc.save();
             rep = videoDocRef;
          }
@@ -390,6 +391,7 @@ class VideoUploadClass
             // Attach a video object to the document that describes the original video
             def originalVideoInfo = this.getVideoInfo(videoPath);
             originalVideoInfo["original"] = 1;
+            originalVideoInfo["encoded"] = 0;
             this.createVideoEntry(originalVideoInfo, videoDocRef);
             // Generate all ffmpeg encoding commands
             def commands = this.mediaTranscoder.generateEncodingCommands(videoPath, dirPath, videoCodec, settings);
@@ -537,8 +539,10 @@ class VideoUploadClass
             rep["mimeType"] = "";//TODO
          }
          // Get the video resolution and duration
-         rep["resolution"] = this.mediaTranscoder.getVideoResolution(videoPath,'s');
-         rep["arrayResolution"] = this.mediaTranscoder.getVideoResolution(videoPath);
+         if(this.mediaTranscoder.hasVideoStream(videoPath)){
+            rep["resolution"] = this.mediaTranscoder.getVideoResolution(videoPath,'s');
+            rep["arrayResolution"] = this.mediaTranscoder.getVideoResolution(videoPath);
+         }
          rep["duration"] = this.mediaTranscoder.getVideoDuration(videoPath, 's');
          rep["hmsDuration"] = this.mediaTranscoder.getVideoDuration(videoPath, 'hms');
          rep["bitrate"] = this.mediaTranscoder.getVideoBitrate(videoPath);

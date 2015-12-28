@@ -891,6 +891,10 @@ If this parameter is not mentioned when a document is created for each video.</d
          #set($videoDoc = $xwiki.getDocument($videoDocRef))
          #set($waitingCommands = $videoDoc.getObjects("XWikiTubeCode.CommandClass", "status", "waiting"))
          #set($completeCommands = $videoDoc.getObjects("XWikiTubeCode.CommandClass", "status", "complete"))
+         #set($noAudioStreamCommands = $videoDoc.getObjects("XWikiTubeCode.CommandClass", "status", "noaudiostream"))
+         #set($noVideoStreamCommands = $videoDoc.getObjects("XWikiTubeCode.CommandClass", "status", "novideostream"))
+         #set($discard = $completeCommands.addAll($noAudioStreamCommands))
+         #set($discard = $completeCommands.addAll($noVideoStreamCommands))
          #set($runingCommands = $videoDoc.getObjects("XWikiTubeCode.CommandClass", "status", "transcoding"))
 
          ## Check waiting commands
@@ -903,11 +907,31 @@ If this parameter is not mentioned when a document is created for each video.</d
                #set($nextCmd = $waitingCommands[0])
                #if($nextCmd.outputFile != "" &amp;&amp; !$nextCmd.outputFile.contains("manifest"))
                   ## video and audio streams commands
-                  #set($rep = $videoUploader.commandRunner.run(["bash", "-c", $nextCmd.getValue("cmd")], '', 2147483647))
+                  #set($sourceVideoPath = $videoUploader.fileNameUtils.concat($nextCmd.getValue("workDir"), $videoName))
+                  #set($commandStatus = "transcoding")
+                  #if($nextCmd.outputFile.contains("audio")) ## audio
+                     ## Check if the original video has audio stream
+                     #if($videoUploader.mediaTranscoder.hasAudioStream($sourceVideoPath))
+                        ## Start the command
+                        #set($rep = $videoUploader.commandRunner.run(["bash", "-c", $nextCmd.getValue("cmd")], '', 2147483647))
+                     #else
+                        ## Update the command status to complete
+                        #set($commandStatus = "noaudiostream")
+                     #end
+                  #else
+                     ## Check if the original video has video stream
+                     #if($videoUploader.mediaTranscoder.hasVideoStream($sourceVideoPath))
+                        ## Start the command
+                        #set($rep = $videoUploader.commandRunner.run(["bash", "-c", $nextCmd.getValue("cmd")], '', 2147483647))
+                     #else
+                        ## Update the command status to complete
+                        #set($commandStatus = "novideostream")
+                     #end
+                  #end
                   ## Update the status of the command object
                   #set($cmdObj = $videoDoc.getObject("XWikiTubeCode.CommandClass", "outputFile", $nextCmd.outputFile))
                   #if($cmdObj)
-                     #set($discard = $cmdObj.set("status", "transcoding"))
+                     #set($discard = $cmdObj.set("status", $commandStatus))
                      #set($discard = $videoDoc.save())
                   #end
                #elseif($nextCmd.outputFile.contains("manifest"))

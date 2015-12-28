@@ -77,11 +77,10 @@
 
 #end
 #end
-
+#end
 #if($doc.getAttachment("audio_128k.webm"))
 == Audio ==
 {{video attachment="audio_128k.webm" width="320" height="180"/}}
-#end
 #end
 #end
 {{/velocity}}</content>

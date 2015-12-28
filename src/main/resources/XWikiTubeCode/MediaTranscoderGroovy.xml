@@ -266,6 +266,58 @@ class MediaTranscodeClass
    }
 
    /**
+   * Check if a video contains audio stream
+   *
+   * @param videoPath the path of the video file in the filesystem
+   * return true if the video contains an audio stream, false otherwise.
+   */
+   def hasAudioStream(videoPath){
+      def rep = false;
+      ArrayList&lt;String&gt; cmdAL = new ArrayList&lt;String&gt;();
+      cmdAL.add('ffprobe');
+      cmdAL.add('-i');
+      cmdAL.add(videoPath);
+      cmdAL.add('-show_streams');
+      cmdAL.add('-select_streams');
+      cmdAL.add('a');
+      cmdAL.add('-loglevel');
+      cmdAL.add('error');
+      def result = this.commandRunner.run(cmdAL, '', 2147483647);
+      if(result.error == 'none'){
+         if(result.stdout != ""){
+            rep = true;
+         }
+      }
+      return rep;
+   }
+
+   /**
+   * Check if a video contains a video stream
+   *
+   * @param videoPath the path of the video file in the filesystem
+   * return true if the video contains an video stream, false otherwise.
+   */
+   def hasVideoStream(videoPath){
+      def rep = false;
+      ArrayList&lt;String&gt; cmdAL = new ArrayList&lt;String&gt;();
+      cmdAL.add('ffprobe');
+      cmdAL.add('-i');
+      cmdAL.add(videoPath);
+      cmdAL.add('-show_streams');
+      cmdAL.add('-select_streams');
+      cmdAL.add('v');
+      cmdAL.add('-loglevel');
+      cmdAL.add('error');
+      def result = this.commandRunner.run(cmdAL, '', 2147483647);
+      if(result.error == 'none'){
+         if(result.stdout != ""){
+            rep = true;
+         }
+      }
+      return rep;
+   }
+
+   /**
    * Generate the video encoding command
    * @param videoPath the path of the video file in the filesystem
    * @param targetVideoDir the target directory that will contains the encoded video
@@ -469,25 +521,31 @@ class MediaTranscodeClass
    */
    def generateEncodingCommands(videoPath, targetVideoDir, videoCodec="libvpx-vp9", videoEncodingSettings = null){
       def commands = [];
-      if(videoEncodingSettings == null){
+      def hasVideoStream = this.hasVideoStream(videoPath);
+      if(videoEncodingSettings == null &amp;&amp; hasVideoStream){
          // Generate the list of options
          videoEncodingSettings = this.getVideoEncodingSettingsList(videoPath);
       }
       // Generate videos streams commands
-      for(options in videoEncodingSettings){
-         def cmd = generateVideoEncodingCommand(videoPath, targetVideoDir, options, videoCodec);
-         def outputFilename = options.resolution + "_output" + ".txt";
-         commands.add(["command": cmd, "workDir": targetVideoDir, "outputFile": outputFilename]);
+      if(hasVideoStream){
+         for(options in videoEncodingSettings){
+            def cmd = generateVideoEncodingCommand(videoPath, targetVideoDir, options, videoCodec);
+            def outputFilename = options.resolution + "_output" + ".txt";
+            commands.add(["command": cmd, "workDir": targetVideoDir, "outputFile": outputFilename]);
+         }
       }
       // Generate audio stream command
-      def cmd = generateAudioEncodingCommand(videoPath, targetVideoDir, this.recommendedAudioEncodingSettings[0]);
-      commands.add(["command": cmd, "workDir": targetVideoDir, "outputFile": "audio_output.txt"]);
+      if(this.hasAudioStream(videoPath)){
+         def cmd = generateAudioEncodingCommand(videoPath, targetVideoDir, this.recommendedAudioEncodingSettings[0]);
+         commands.add(["command": cmd, "workDir": targetVideoDir, "outputFile": "audio_output.txt"]);
+      }
       // Generate the flv video with the lowest quality that will be played if the browser do not support MSE.
-      def lowQualityOptions = videoEncodingSettings[videoEncodingSettings.size() - 1];
-      cmd = generateFlvEncodingCommand(videoPath, targetVideoDir, lowQualityOptions);
-      commands.add(["command": cmd, "workDir": targetVideoDir, "outputFile": "flv_output.txt"]);
+      if(hasVideoStream){
+         def lowQualityOptions = videoEncodingSettings[videoEncodingSettings.size() - 1];
+         def cmd = generateFlvEncodingCommand(videoPath, targetVideoDir, lowQualityOptions);
+         commands.add(["command": cmd, "workDir": targetVideoDir, "outputFile": "flv_output.txt"]);
+      }
       // Generate manifest.mpd file command
-      //def manifestCmd = this.generateDASHManifestCommand(targetVideoDir);
       // Set the manifest file command to "", it will be generated once all the other steams are created.
       commands.add(["command": "", "workDir": targetVideoDir, "outputFile": "manifest_output.txt"]);
       return commands;
