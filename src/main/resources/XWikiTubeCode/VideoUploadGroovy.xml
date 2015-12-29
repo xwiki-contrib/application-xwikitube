@@ -391,7 +391,7 @@ class VideoUploadClass
             // Attach a video object to the document that describes the original video
             def originalVideoInfo = this.getVideoInfo(videoPath);
             originalVideoInfo["original"] = 1;
-            originalVideoInfo["encoded"] = 0;
+            originalVideoInfo["encoded"] = '0';
             this.createVideoEntry(originalVideoInfo, videoDocRef);
             // Generate all ffmpeg encoding commands
             def commands = this.mediaTranscoder.generateEncodingCommands(videoPath, dirPath, videoCodec, settings);
@@ -399,6 +399,9 @@ class VideoUploadClass
                // Attach a command object to the document
                 def cmdID = videoDoc.createNewObject("XWikiTubeCode.CommandClass");
                 def cmdObj = videoDoc.getObject("XWikiTubeCode.CommandClass", cmdID);
+                def d = new Date();
+                def startTime = d.getTime();
+                cmdObj.set("startTime", startTime);
                 cmdObj.set("cmd", cmd.command);
                 cmdObj.set("workDir", cmd.workDir);
                 cmdObj.set("outputFile", cmd.outputFile);

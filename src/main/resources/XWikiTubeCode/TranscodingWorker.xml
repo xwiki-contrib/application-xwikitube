@@ -1,0 +1,294 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+ * See the NOTICE file distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU Lesser General Public License as
+ * published by the Free Software Foundation; either version 2.1 of
+ * the License, or (at your option) any later version.
+ *
+ * This software is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this software; if not, write to the Free
+ * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+ * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
+-->
+
+<xwikidoc>
+  <web>XWikiTubeCode</web>
+  <name>TranscodingWorker</name>
+  <language/>
+  <defaultLanguage/>
+  <translation>0</translation>
+  <parent>Scheduler.WebHome</parent>
+  <creator>xwiki:XWiki.Admin</creator>
+  <author>xwiki:XWiki.Admin</author>
+  <customClass/>
+  <contentAuthor>xwiki:XWiki.Admin</contentAuthor>
+  <creationDate>1451395599000</creationDate>
+  <date>1451399857000</date>
+  <contentUpdateDate>1451395599000</contentUpdateDate>
+  <version>1.1</version>
+  <title>TranscodingWorker</title>
+  <defaultTemplate/>
+  <validationScript/>
+  <comment/>
+  <minorEdit>false</minorEdit>
+  <syntaxId>xwiki/2.0</syntaxId>
+  <hidden>false</hidden>
+  <object>
+    <class>
+      <name>XWiki.SchedulerJobClass</name>
+      <customClass/>
+      <customMapping/>
+      <defaultViewSheet/>
+      <defaultEditSheet/>
+      <defaultWeb/>
+      <nameField/>
+      <validationScript/>
+      <contextDatabase>
+        <disabled>0</disabled>
+        <name>contextDatabase</name>
+        <number>9</number>
+        <prettyName>Job execution context database</prettyName>
+        <size>30</size>
+        <unmodifiable>0</unmodifiable>
+        <classType>com.xpn.xwiki.objects.classes.StringClass</classType>
+      </contextDatabase>
+      <contextLang>
+        <disabled>0</disabled>
+        <name>contextLang</name>
+        <number>8</number>
+        <prettyName>Job execution context lang</prettyName>
+        <size>30</size>
+        <unmodifiable>0</unmodifiable>
+        <classType>com.xpn.xwiki.objects.classes.StringClass</classType>
+      </contextLang>
+      <contextUser>
+        <disabled>0</disabled>
+        <name>contextUser</name>
+        <number>7</number>
+        <prettyName>Job execution context user</prettyName>
+        <size>30</size>
+        <unmodifiable>0</unmodifiable>
+        <classType>com.xpn.xwiki.objects.classes.StringClass</classType>
+      </contextUser>
+      <cron>
+        <disabled>0</disabled>
+        <name>cron</name>
+        <number>5</number>
+        <prettyName>Cron Expression</prettyName>
+        <size>30</size>
+        <unmodifiable>0</unmodifiable>
+        <classType>com.xpn.xwiki.objects.classes.StringClass</classType>
+      </cron>
+      <jobClass>
+        <disabled>0</disabled>
+        <name>jobClass</name>
+        <number>3</number>
+        <prettyName>Job Class</prettyName>
+        <size>60</size>
+        <unmodifiable>0</unmodifiable>
+        <classType>com.xpn.xwiki.objects.classes.StringClass</classType>
+      </jobClass>
+      <jobDescription>
+        <disabled>0</disabled>
+        <name>jobDescription</name>
+        <number>2</number>
+        <prettyName>Job Description</prettyName>
+        <rows>10</rows>
+        <size>45</size>
+        <unmodifiable>0</unmodifiable>
+        <classType>com.xpn.xwiki.objects.classes.TextAreaClass</classType>
+      </jobDescription>
+      <jobName>
+        <disabled>0</disabled>
+        <name>jobName</name>
+        <number>1</number>
+        <prettyName>Job Name</prettyName>
+        <size>60</size>
+        <unmodifiable>0</unmodifiable>
+        <classType>com.xpn.xwiki.objects.classes.StringClass</classType>
+      </jobName>
+      <script>
+        <disabled>0</disabled>
+        <editor>PureText</editor>
+        <name>script</name>
+        <number>6</number>
+        <prettyName>Job Script</prettyName>
+        <rows>10</rows>
+        <size>60</size>
+        <unmodifiable>0</unmodifiable>
+        <classType>com.xpn.xwiki.objects.classes.TextAreaClass</classType>
+      </script>
+      <status>
+        <disabled>0</disabled>
+        <name>status</name>
+        <number>4</number>
+        <prettyName>Status</prettyName>
+        <size>30</size>
+        <unmodifiable>0</unmodifiable>
+        <classType>com.xpn.xwiki.objects.classes.StringClass</classType>
+      </status>
+    </class>
+    <name>XWikiTubeCode.TranscodingWorker</name>
+    <number>0</number>
+    <className>XWiki.SchedulerJobClass</className>
+    <guid>cbfc5c19-db41-447c-8772-7d39db52250d</guid>
+    <property>
+      <contextDatabase>xwiki</contextDatabase>
+    </property>
+    <property>
+      <contextLang>en</contextLang>
+    </property>
+    <property>
+      <contextUser>XWiki.Admin</contextUser>
+    </property>
+    <property>
+      <cron>0 0/1 * 1/1 * ? *</cron>
+    </property>
+    <property>
+      <jobClass>com.xpn.xwiki.plugin.scheduler.GroovyJob</jobClass>
+    </property>
+    <property>
+      <jobDescription>This job have the following objectives:  Execute pending commands according to their order of arrival, changing the status of completed commands, and close the encoding process by attaching the generated files to the corresponding document.</jobDescription>
+    </property>
+    <property>
+      <jobName>Transcoding worker</jobName>
+    </property>
+    <property>
+      <script>// The scheduler job will follow the following steps
+// 1) List the running commands and check their progress, if the command execution is finished then update its status to 'complete'
+// 2) List the waiting commands and run the command that has the earliest date of creation if there is no running command.
+// 3) List the documents that have all attached commands complete and attach the generated encoding files to the document.
+
+def videoUploader = xwiki.parseGroovyFromPage("XWikiTubeCode.VideoUploadGroovy");
+videoUploader.init(xwiki, xcontext, services);
+def xwql = "select doc.fullName, command.cmd, command.workDir, command.outputFile, command.duration, video.name from Document doc, doc.object(XWikiTubeCode.CommandClass) as command, doc.object(XWikiTubeCode.MediaClass) as video where";
+xwql += " doc.fullName &lt;&gt; 'XWikiTubeCode.CommandTemplate'";
+xwql += " and video.original = '1' and video.encoded = '0'";
+
+// Manage running commands
+// Edit the status of the running commands when finished
+def runningCMDsxwql = xwql + " and command.status = 'transcoding' order by command.startTime";
+def runningCommands = services.query.xwql(runningCMDsxwql).execute();
+for(command in runningCommands){
+   def videoDocRef = command[0];
+   def workDir = command[2];
+   def outputFile = command[3];
+   def duration = command[4];
+   def videoName = command[5];
+   def videoDoc = xwiki.getDocument(videoDocRef);
+   def outputFilePath = videoUploader.fileNameUtils.concat(workDir, outputFile);
+   def progressRep = videoUploader.checkEncodingProgress(outputFilePath, duration);
+   if(progressRep.status == "end"){// Command complete
+      // Update the command object
+      def cmdObj = videoDoc.getObject("XWikiTubeCode.CommandClass", "outputFile", outputFile);
+      if(cmdObj){
+         cmdObj.set("status", "complete");
+         videoDoc.save();
+      }
+   }
+   else if(progressRep.status == "output_file_not_found"){
+      // Update the command object
+      def cmdObj = videoDoc.getObject("XWikiTubeCode.CommandClass", "outputFile", outputFile);
+      if(cmdObj){
+         cmdObj.set("status", "outputFileNotFound");
+         videoDoc.save();
+      }
+   }
+}
+
+// Manage waiting commands
+// Check if FFmpeg is installed and there is no running commands
+def ffmpeg = videoUploader.mediaTranscoder.checkFFmpeg();
+def ffmpegRunning = videoUploader.mediaTranscoder.checkFFmpegRunning();
+if(ffmpeg &amp;&amp; !ffmpegRunning){
+   // Get the list of the waiting commands
+   def waitingCMDsxwql = xwql + " and command.status = 'waiting' order by command.startTime";
+   def waitingCommands = services.query.xwql(waitingCMDsxwql).setLimit(1).execute();
+   for(command in waitingCommands){
+      // Start a new command
+      def videoDocRef = command[0];
+      def cmd = command[1];
+      def workDir = command[2];
+      def outputFile = command[3];
+      def duration = command[4];
+      def videoName = command[5];
+      def videoDoc = xwiki.getDocument(videoDocRef);
+      if(outputFile != "" &amp;&amp; !outputFile.contains("manifest")){
+         // video and audio streams commands
+         def sourceVideoPath = videoUploader.fileNameUtils.concat(workDir, videoName);
+         def commandStatus = "transcoding";
+         if(outputFile.contains("audio")){ // audio
+            // Check if the original video has audio stream
+            if(videoUploader.mediaTranscoder.hasAudioStream(sourceVideoPath)) {
+               // Start the command
+               videoUploader.commandRunner.run(["bash", "-c", cmd], '', 2147483647);
+            }
+            else {
+              // Set the command status to noaudiostream
+              commandStatus = "noaudiostream";
+            }
+         }
+         else {
+            // Check if the original video has video stream
+            if(videoUploader.mediaTranscoder.hasVideoStream(sourceVideoPath)) {
+               // Start the command
+               videoUploader.commandRunner.run(["bash", "-c", cmd], '', 2147483647);
+            }
+            else {
+               // Set the command status to novideostream
+               commandStatus = "novideostream";
+            }
+         }
+         // Update the status of the command object
+         def cmdObj = videoDoc.getObject("XWikiTubeCode.CommandClass", "outputFile", outputFile);
+         if(cmdObj){
+            cmdObj.set("status", commandStatus);
+            videoDoc.save();
+         }
+      }
+      else if(outputFile.contains("manifest")){
+         // Manifest file command
+         // Generate the manifest command and update the command object
+         def manifestCmd = videoUploader.mediaTranscoder.generateDASHManifestCommand(workDir);
+         def rep = videoUploader.commandRunner.run(["bash", "-c", manifestCmd], '', 2147483647);
+         // Update the status/cmd properties of the command object
+         def cmdObj = videoDoc.getObject("XWikiTubeCode.CommandClass", "outputFile", outputFile);
+         if(cmdObj){
+            cmdObj.set("status", "transcoding");
+            cmdObj.set("cmd", manifestCmd);
+            videoDoc.save();
+         }
+      }
+   }
+}
+
+// Manage complete commands (attach files to documents)
+def completeCMDsxwql = "select distinct doc.fullName, video.name, video.dirPath from Document doc, doc.object(XWikiTubeCode.MediaClass) as video, doc.object(XWikiTubeCode.CommandClass) as command where";
+completeCMDsxwql += " doc.fullName &lt;&gt; 'XWikiTubeCode.CommandTemplate'";
+completeCMDsxwql += " and video.original = '1' and video.encoded = '0'";
+completeCMDsxwql += " and command.status = 'complete' and command.outputFile = 'manifest_output.txt'";
+completeCMDsxwql += " and (video.dirPath = command.workDir or video.dirPath = concat(command.workDir, '/'))";
+completeCMDsxwql += " order by command.startTime";
+def completeCommands = services.query.xwql(completeCMDsxwql).execute();
+for(command in completeCommands){
+   def videoDocRef = command[0];
+   def videoName = command[1];
+   def videoDir = command[2];
+   // Start attaching files
+   videoUploader.attachEncodingFilesToDoc(videoDir, videoDocRef, videoName);
+}</script>
+    </property>
+    <property>
+      <status>Normal</status>
+    </property>
+  </object>
+  <content/>
+</xwikidoc>
