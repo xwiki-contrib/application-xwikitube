@@ -158,7 +158,7 @@ if(targetInput) {
   });
 }
 
-require(['jquery', 'bootstrap-filestyle'], function($, btsfs){
+require(['jquery'], function($){
 function displaySuccess(selector, msg){
    $(selector).html('&lt;p class="bg-success"&gt;' + msg + '&lt;/p&gt;')
 }
@@ -244,9 +244,6 @@ function checkVideoEncodingProcess(videoDocRef, videoName){
    }, 5000);
 }
 
-// Initialize the video upload inputs
-$(".upload-video-input").filestyle({buttonName: "btn-primary", input: false, buttonText: "Select video", iconName: "glyphicon glyphicon-facetime-video", badge: false});
-
 // Initialize the encode vide checkboxes
 $("input.encode-video-chk").click(function(){
    var form = $(this).closest("form");
@@ -263,6 +260,11 @@ $("input.encode-video-chk").click(function(){
 });
 
 $(function(){
+  // Initialize the video upload inputs
+  require(['bootstrap-filestyle'], function(btsfs){
+     $(".upload-video-input").filestyle({buttonName: "btn-primary", input: false, buttonText: "Select video", iconName: "glyphicon glyphicon-facetime-video", badge: false});
+  });
+
   // Check the encoding progress
   if($("#encodingInProgress").size() &gt; 0){
     var videoDocRef = $("#videoDocRef").val();
@@ -280,6 +282,7 @@ $(function(){
        fileUploader.formData.action = formAction;
     }
   }
+});
 
   // Initialize encode button
   $("body").on("click", "#encode-video-btn", function(event){
@@ -322,7 +325,6 @@ $(function(){
         });
      });
   });
-});
 });</code>
     </property>
     <property>
@@ -434,7 +436,7 @@ $(function(){
       <code>.video-uploader-container {
    position: relative;
    padding-top: 45px;
-   overflow: hidden;
+   min-height: 60px;
 }
 .video-uploader-container .encode-vid-txt {
     display: table-cell;
