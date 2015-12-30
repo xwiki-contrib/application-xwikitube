@@ -420,6 +420,41 @@ class MediaTranscodeClass
    }
 
    /**
+   * Generate a video thumbnail command
+   *
+   * @param videoPath the path of the video file in the filesystem
+   * @param targetThumnailDir the target directory that will contains the thumbnail image
+   * @param duration duration of the video
+   * @return the ffmpeg encoding command
+   */
+   def generateVideoThumbnail(videoPath, targetThumnailDir, duration){
+      def startFrom = 0;
+      if(duration &lt;= 10){
+         startFrom = '1';
+      }
+      else
+      {
+         startFrom = '10';
+      }
+      ArrayList&lt;String&gt; cmdAL = new ArrayList&lt;String&gt;();
+      cmdAL.add('ffmpeg');
+      cmdAL.add('-y');
+      cmdAL.add('-progress');
+      def outputFilename = 'image_output.txt';
+      cmdAL.add(targetThumnailDir + '/' + outputFilename);
+      cmdAL.add('-i');
+      cmdAL.add(videoPath);
+      cmdAL.add('-ss');
+      cmdAL.add('00:00:' + startFrom);
+      cmdAL.add('-vframes');
+      cmdAL.add('1');
+      cmdAL.add(targetThumnailDir + '/' + 'thumbnail.png');
+      // Run command in background
+      cmdAL.add('&gt; /dev/null 2&gt;&amp;1 &lt; /dev/null &amp;');
+      return this.implodeArrayList(cmdAL, ' ');
+   }
+
+   /**
    * Generate the audio encoding command
    * @param audioPath the path of the video/audio file in the filesystem
    * @param targetAudioDir the target directory that will contains the encoded audio
@@ -546,6 +581,9 @@ class MediaTranscodeClass
          def lowQualityOptions = videoEncodingSettings[videoEncodingSettings.size() - 1];
          def cmd = generateFlvEncodingCommand(videoPath, targetVideoDir, lowQualityOptions);
          commands.add(["command": cmd, "workDir": targetVideoDir, "outputFile": "flv_output.txt"]);
+         // Thumbnail command
+         cmd = generateVideoThumbnail(videoPath, targetVideoDir, this.getVideoDuration(videoPath));
+         commands.add(["command": cmd, "workDir": targetVideoDir, "outputFile": "image_output.txt"]);
       }
       // Generate manifest.mpd file command
       // Set the manifest file command to "", it will be generated once all the other steams are created.

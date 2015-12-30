@@ -196,11 +196,14 @@ function displayCommandsProgress(commands, status, resultsContainer){
    for(var i= 0;i&lt;commands.size();i++){
       var cmd = commands[i];
       var label = cmd.stream;
-      if(label != "audio" &amp;&amp; label != "manifest"){
+      if(label != "audio" &amp;&amp; label != "manifest" &amp;&amp; label != "image"){
          label = "Video" + " " + label;
       }
       else if(label == "manifest"){
          label = "Manifest file";
+      }
+      else if(label == "image"){
+         label = "Thumbnail";
       }
       resultsContainer.append('&lt;div&gt;&lt;strong&gt;' + label + ': &lt;/strong&gt;&lt;span class="progress-details"&gt;(' + details + ')&lt;/span&gt;' + displayProgressBar(cmd.progress) + '&lt;/div&gt;');
    }

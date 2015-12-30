@@ -433,10 +433,10 @@ class VideoUploadClass
          def files = this.getDirectoryFiles(videoDir);
          for(file in files){
             if(file.getName() != videoName &amp;&amp; !file.getName().endsWith(".txt")){
-               def video = this.getVideoInfo(file.getPath());
                // Attach MediaClass object on to video document that describe the video
                this.attachFileToDoc(videoDocRef, file.getName(), file.getPath());
-               if(file.getName() != "audio_128k.webm" &amp;&amp; file.getName() != "manifest.mpd" &amp;&amp; file.getName() != "video.flv"){
+               if(file.getName() != "audio_128k.webm" &amp;&amp; file.getName() != "manifest.mpd" &amp;&amp; file.getName() != "video.flv" &amp;&amp; file.getName() != "thumbnail.png"){
+                  def video = this.getVideoInfo(file.getPath());
                   this.createVideoEntry(video, videoDocRef);
                }
             }

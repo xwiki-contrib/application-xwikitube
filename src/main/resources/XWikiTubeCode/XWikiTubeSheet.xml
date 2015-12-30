@@ -325,6 +325,10 @@
   top: 100%;
   padding: 1px 5px;
   margin-top: -20px
+}
+.same-videos-panel .videothumb img{
+   margin-top: 5px;
+   margin-left: 5px;
 }</code>
     </property>
     <property>
@@ -442,8 +446,17 @@
                    #set($vdoc = $xwiki.getDocument($v))
                    #set($xwikiTubeObj = $vdoc.getObject("XWikiTubeCode.XWikiTubeClass"))
                    #set($videoInfo = $vdoc.getObject("XWikiTubeCode.MediaClass", "original", 1))
+                   #set($hasThumbnail = false)
+                   #if($vdoc.getAttachment("thumbnail.png"))
+                      #set($hasThumbnail = true)
+                      #set($thumbnailURL = $vdoc.getAttachmentURL("thumbnail.png"))
+                   #end
                    &lt;div class="videothumb"&gt;
-                   &lt;div class="glyphicon glyphicon-facetime-video" aria-hidden="true"&gt;&lt;/div&gt;
+                   #if($hasThumbnail)
+                      &lt;img src="${thumbnailURL}?width=90&amp;height=70" title="$!xwikiTubeObj.title" alt="$!xwikiTubeObj.title" /&gt;
+                   #else
+                      &lt;div class="glyphicon glyphicon-facetime-video" aria-hidden="true"&gt;&lt;/div&gt;
+                   #end
                    &lt;span class="info"&gt;
                    &lt;a href="$xwiki.getURL($v)"&gt;
                       $xwikiTubeObj.title
