@@ -332,6 +332,7 @@ class MediaTranscodeClass
          cmdAL.add('-y');
          cmdAL.add('-progress');
          def outputFilename = options.resolution + "_output" + ".txt";
+         def errorFilename = options.resolution + "_error.txt";
          cmdAL.add(targetVideoDir + '/' + outputFilename);
          cmdAL.add('-i');
          cmdAL.add(videoPath);
@@ -371,7 +372,7 @@ class MediaTranscodeClass
          // Target video name
          cmdAL.add(targetVideoDir + '/' + 'video_' + options.resolution + '_' + bitrate + '.webm');
          // Run command in background
-         cmdAL.add("&gt; /dev/null 2&gt;&amp;1 &lt; /dev/null &amp;");
+         cmdAL.add("&gt; /dev/null 2&gt; " + this.fileNameUtils.concat(targetVideoDir, errorFilename) + " &lt; /dev/null &amp;");
       }
       return this.implodeArrayList(cmdAL, " ");
    }
@@ -389,6 +390,7 @@ class MediaTranscodeClass
       cmdAL.add('-y');
       cmdAL.add('-progress');
       def outputFilename = "flv_output.txt";
+      def errorFilename = "flv_error.txt";
       cmdAL.add(targetVideoDir + '/' + outputFilename);
       cmdAL.add('-i');
       cmdAL.add(videoPath);
@@ -415,7 +417,7 @@ class MediaTranscodeClass
       // Target video name
       cmdAL.add(targetVideoDir + '/' + 'video.flv');
       // Run command in background
-      cmdAL.add("&gt; /dev/null 2&gt;&amp;1 &lt; /dev/null &amp;");
+      cmdAL.add("&gt; /dev/null 2&gt; " + this.fileNameUtils.concat(targetVideoDir, errorFilename) + " &lt; /dev/null &amp;");
       return this.implodeArrayList(cmdAL, " ");
    }
 
@@ -441,6 +443,7 @@ class MediaTranscodeClass
       cmdAL.add('-y');
       cmdAL.add('-progress');
       def outputFilename = 'image_output.txt';
+      def errorFilename = 'image_error.txt';
       cmdAL.add(targetThumnailDir + '/' + outputFilename);
       cmdAL.add('-i');
       cmdAL.add(videoPath);
@@ -450,7 +453,7 @@ class MediaTranscodeClass
       cmdAL.add('1');
       cmdAL.add(targetThumnailDir + '/' + 'thumbnail.png');
       // Run command in background
-      cmdAL.add('&gt; /dev/null 2&gt;&amp;1 &lt; /dev/null &amp;');
+      cmdAL.add("&gt; /dev/null 2&gt; " + this.fileNameUtils.concat(targetThumnailDir, errorFilename) + " &lt; /dev/null &amp;");
       return this.implodeArrayList(cmdAL, ' ');
    }
 
@@ -469,6 +472,7 @@ class MediaTranscodeClass
          cmdAL.add('-y');
          cmdAL.add('-progress');
          def outputFilename = "audio_output.txt";
+         def errorFilename = "audio_error.txt";
          cmdAL.add(targetAudioDir + '/' + outputFilename);
          cmdAL.add('-i');
          cmdAL.add(audioPath);
@@ -488,7 +492,7 @@ class MediaTranscodeClass
          // Target video name
          cmdAL.add(targetAudioDir + '/' + 'audio_' + bitrate + '.webm');
          // Run command in background
-         cmdAL.add("&gt; /dev/null 2&gt;&amp;1 &lt; /dev/null &amp;");
+         cmdAL.add("&gt; /dev/null 2&gt; " + this.fileNameUtils.concat(targetAudioDir, errorFilename) + " &lt; /dev/null &amp;");
       }
       return this.implodeArrayList(cmdAL, " ");
    }
@@ -673,6 +677,7 @@ class MediaTranscodeClass
             cmdAL.add('-y');
             cmdAL.add('-progress');
             def outputFilename = "manifest_output.txt";
+            def errorFilename = "manifest_error.txt";
             cmdAL.add(streamsDirectory + '/' + outputFilename) ;
             ArrayList&lt;String&gt; param1AL = new ArrayList&lt;String&gt;();
             param1AL.add('-c');
@@ -710,7 +715,7 @@ class MediaTranscodeClass
             cmdAL.addAll(param2AL);
             cmdAL.add(streamsDirectory + '/manifest.mpd');
             // Run command in background
-            cmdAL.add("&gt; /dev/null 2&gt;&amp;1 &lt; /dev/null &amp;");
+            cmdAL.add("&gt; /dev/null 2&gt; " + this.fileNameUtils.concat(streamsDirectory, errorFilename) + " &lt; /dev/null &amp;");
          }
       }
       return this.implodeArrayList(cmdAL, " ");

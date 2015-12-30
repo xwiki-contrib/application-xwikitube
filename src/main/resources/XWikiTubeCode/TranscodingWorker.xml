@@ -186,12 +186,21 @@ for(command in runningCommands){
    def videoName = command[5];
    def videoDoc = xwiki.getDocument(videoDocRef);
    def outputFilePath = videoUploader.fileNameUtils.concat(workDir, outputFile);
-   def progressRep = videoUploader.checkEncodingProgress(outputFilePath, duration);
+   def errorFilePath = videoUploader.fileNameUtils.concat(workDir, outputFile.replace('output', 'error'));
+   def progressRep = videoUploader.checkEncodingProgress(outputFilePath, errorFilePath, duration);
    if(progressRep.status == "end"){// Command complete
       // Update the command object
       def cmdObj = videoDoc.getObject("XWikiTubeCode.CommandClass", "outputFile", outputFile);
       if(cmdObj){
          cmdObj.set("status", "complete");
+         videoDoc.save();
+      }
+   }
+   else if(progressRep.status == "empty_file"){ // FFmpeg error
+      // Update the command object
+      def cmdObj = videoDoc.getObject("XWikiTubeCode.CommandClass", "outputFile", outputFile);
+      if(cmdObj){
+         cmdObj.set("status", "transcoding_error");
          videoDoc.save();
       }
    }
@@ -212,8 +221,11 @@ def ffmpegRunning = videoUploader.mediaTranscoder.checkFFmpegRunning();
 if(ffmpeg &amp;&amp; !ffmpegRunning){
    // Get the list of the waiting commands
    def waitingCMDsxwql = xwql + " and command.status = 'waiting' order by command.startTime";
-   def waitingCommands = services.query.xwql(waitingCMDsxwql).setLimit(1).execute();
-   for(command in waitingCommands){
+   def waitingCommands = services.query.xwql(waitingCMDsxwql).execute();
+   def i = 0;
+   def stop = false;
+   while(i &lt; waitingCommands.size() &amp;&amp; !stop){
+      def command = waitingCommands[i];
       // Start a new command
       def videoDocRef = command[0];
       def cmd = command[1];
@@ -231,6 +243,7 @@ if(ffmpeg &amp;&amp; !ffmpegRunning){
             if(videoUploader.mediaTranscoder.hasAudioStream(sourceVideoPath)) {
                // Start the command
                videoUploader.commandRunner.run(["bash", "-c", cmd], '', 2147483647);
+               stop = true;
             }
             else {
               // Set the command status to noaudiostream
@@ -242,6 +255,7 @@ if(ffmpeg &amp;&amp; !ffmpegRunning){
             if(videoUploader.mediaTranscoder.hasVideoStream(sourceVideoPath)) {
                // Start the command
                videoUploader.commandRunner.run(["bash", "-c", cmd], '', 2147483647);
+               stop = true;
             }
             else {
                // Set the command status to novideostream
@@ -257,17 +271,24 @@ if(ffmpeg &amp;&amp; !ffmpegRunning){
       }
       else if(outputFile.contains("manifest")){
          // Manifest file command
-         // Generate the manifest command and update the command object
-         def manifestCmd = videoUploader.mediaTranscoder.generateDASHManifestCommand(workDir);
-         def rep = videoUploader.commandRunner.run(["bash", "-c", manifestCmd], '', 2147483647);
-         // Update the status/cmd properties of the command object
-         def cmdObj = videoDoc.getObject("XWikiTubeCode.CommandClass", "outputFile", outputFile);
-         if(cmdObj){
-            cmdObj.set("status", "transcoding");
-            cmdObj.set("cmd", manifestCmd);
-            videoDoc.save();
+         // Check that all commands of a given video that comes before the manifest command were completed
+         def nbCMDs = videoDoc.getObjects("XWikiTubeCode.CommandClass").size();
+         def nbCompletedCMDs = videoDoc.getObjects("XWikiTubeCode.CommandClass", "status", "complete").size();
+         if(nbCompletedCMDs == (nbCMDs - 1)){
+            // Generate the manifest command and update the command object
+            def manifestCmd = videoUploader.mediaTranscoder.generateDASHManifestCommand(workDir);
+            def rep = videoUploader.commandRunner.run(["bash", "-c", manifestCmd], '', 2147483647);
+            stop = true;
+            // Update the status/cmd properties of the command object
+            def cmdObj = videoDoc.getObject("XWikiTubeCode.CommandClass", "outputFile", outputFile);
+            if(cmdObj){
+               cmdObj.set("status", "transcoding");
+               cmdObj.set("cmd", manifestCmd);
+               videoDoc.save();
+            }
          }
       }
+      i++;
    }
 }
 

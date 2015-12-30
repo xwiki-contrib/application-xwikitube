@@ -597,25 +597,39 @@ class VideoUploadClass
    * @param duration the duration of the original video, used to compute the progress of video/audio streams
    * @return a map (status, currentTime, progress)
    */
-   def checkEncodingProgress(outputFilePath, duration){
+   def checkEncodingProgress(outputFilePath, errorFilePath, duration){
       if(this.checkFileExists(outputFilePath)){
          def durationMS = (duration * 1000000).toLong(); // Duration in Micro S
          def status = "";
          def currentTime = "";
          File f = new File(outputFilePath);
-         def it = this.fileUtils.lineIterator(f);
-         while (it.hasNext()) {
-            String line = it.nextLine();
-            if(line.contains("progress=")){
-               status = line.replace("progress=", "");
+         if(f.length() == 0){
+            // Return the error in the file error
+            if(this.checkFileExists(errorFilePath)){
+               File fe = new File(errorFilePath);
+               return ["status": "empty_file", "error": this.fileUtils.readFileToString(fe)];
             }
-            else if(line.contains("out_time_ms=")){
-               currentTime = line.replace("out_time_ms=", "");
+            else
+            {
+               return ["status": "empty_file", error: ""];
             }
          }
-         def currentTimeMS = currentTime.toLong();
-         def progress = Math.round((currentTimeMS/durationMS) * 100);
-         return ["status": status, "currentTime": currentTimeMS, "progress": progress];
+         else
+         {
+            def it = this.fileUtils.lineIterator(f);
+            while (it.hasNext()) {
+               String line = it.nextLine();
+               if(line.contains("progress=")){
+                  status = line.replace("progress=", "");
+               }
+               else if(line.contains("out_time_ms=")){
+                  currentTime = line.replace("out_time_ms=", "");
+               }
+            }
+            def currentTimeMS = currentTime.toLong();
+            def progress = Math.round((currentTimeMS/durationMS) * 100);
+            return ["status": status, "currentTime": currentTimeMS, "progress": progress];
+         }
        }
       else
       {

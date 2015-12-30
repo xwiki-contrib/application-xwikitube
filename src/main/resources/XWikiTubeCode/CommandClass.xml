@@ -123,7 +123,7 @@
       <unmodifiable>0</unmodifiable>
       <validationMessage/>
       <validationRegExp/>
-      <values>transcoding=Transcoding|waiting=Waiting|complete=Complete|noaudiostream=No audio stream|novideostream=No video stream|outputFileNotFound=Output file not found</values>
+      <values>transcoding=Transcoding|waiting=Waiting|complete=Complete|noaudiostream=No audio stream|novideostream=No video stream|outputFileNotFound=Output file not found|transcoding_error=Transcoding error</values>
       <classType>com.xpn.xwiki.objects.classes.StaticListClass</classType>
     </status>
     <workDir>

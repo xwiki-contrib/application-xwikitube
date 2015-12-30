@@ -140,7 +140,9 @@ var messages = {
   attach_files: "Attaching encoded files to the document.",
   complete: "Complete",
   in_progress: "In progress",
-  waiting_transcoding_worker: "Waiting for the transcoding worker"
+  waiting_transcoding_worker: "Waiting for the transcoding worker",
+  transcoding_error: "Transcoding error",
+  show_error: "Show the error"
 };
 
 // Configure require.js to use Bootstrap FileStyle (https://github.com/markusslima/bootstrap-filestyle)
@@ -167,17 +169,22 @@ function displayError(selector, msg){
    $(selector).html('&lt;p class="bg-danger"&gt;' + msg + '&lt;/p&gt;')
 }
 
-function displayAjaxLoader(){;
+function displayAjaxLoader(){
    return '&lt;span class="glyphicon glyphicon-refresh glyphicon-refresh-animate"&gt;&lt;/span&gt;';
 }
 
-function displayProgressBar(val){
+function displayProgressBar(cmd){
+var typeClass = (!cmd.error) ? "success": "danger";
+var val = cmd.progress;
 var html = '&lt;div class="progress"&gt;';
-  html += '&lt;div class="progress-bar progress-bar-success progress-bar-striped" role="progressbar" aria-valuenow="' + val + '" aria-valuemin="0" aria-valuemax="100" style="width: ' + val + '%"&gt;';
+  html += '&lt;div class="progress-bar progress-bar-' + typeClass + ' progress-bar-striped" role="progressbar" aria-valuenow="' + val + '" aria-valuemin="0" aria-valuemax="100" style="width: ' + val + '%"&gt;';
   html += '&lt;span class="sr-only"&gt;' + val + '% Complete (success)&lt;/span&gt;';
   html += val +'%';
   html += '&lt;/div&gt;';
   html += '&lt;/div&gt;';
+  if(cmd.error){
+     html += '&lt;p class="encoding-error bg-danger" style="display: none;"&gt;' + cmd.error + '&lt;/p&gt;';
+  }
   return html;
 }
 
@@ -205,7 +212,8 @@ function displayCommandsProgress(commands, status, resultsContainer){
       else if(label == "image"){
          label = "Thumbnail";
       }
-      resultsContainer.append('&lt;div&gt;&lt;strong&gt;' + label + ': &lt;/strong&gt;&lt;span class="progress-details"&gt;(' + details + ')&lt;/span&gt;' + displayProgressBar(cmd.progress) + '&lt;/div&gt;');
+      var cmdDetails = (!cmd.error) ? details: '&lt;span style="color: red;font-weight: bold;"&gt;' + messages.transcoding_error + ' ... &lt;a href="javascript:;" class="show-encoding-error"&gt;' + messages.show_error + '&lt;/a&gt;&lt;/span&gt;';
+      resultsContainer.append('&lt;div&gt;&lt;strong&gt;' + label + ': &lt;/strong&gt;&lt;span class="progress-details"&gt;(' + cmdDetails + ')&lt;/span&gt;' + displayProgressBar(cmd) + '&lt;/div&gt;');
    }
 }
 
@@ -220,6 +228,9 @@ function checkVideoEncodingProcess(videoDocRef, videoName){
       .done(function(rep){
          resultsContainer.html("");
          if(rep){
+            if(rep.encodeError){// There is an encoding error
+               clearTimeout(timer);
+            }
             if(rep.completeCmds &amp;&amp; rep.completeCmds.size() &gt; 0){
                displayCommandsProgress(rep.completeCmds, "complete", resultsContainer);
             }
@@ -328,6 +339,11 @@ $(function(){
         });
      });
   });
+
+// Initialize show encoding error links
+$("body").on("click", ".show-encoding-error", function(event){
+   $(".encoding-error:last", $(this).parents()).toggle();
+});
 });</code>
     </property>
     <property>
@@ -901,6 +917,8 @@ If this parameter is not mentioned when a document is created for each video.</d
          #set($discard = $completeCommands.addAll($noAudioStreamCommands))
          #set($discard = $completeCommands.addAll($noVideoStreamCommands))
          #set($runingCommands = $videoDoc.getObjects("XWikiTubeCode.CommandClass", "status", "transcoding"))
+         #set($transcodingErrorCommands = $videoDoc.getObjects("XWikiTubeCode.CommandClass", "status", "transcoding_error"))
+         #set($discard = $runingCommands.addAll($transcodingErrorCommands))
 
          ## Check waiting commands
          #set($waitingCmdsJSON = [])
@@ -959,10 +977,12 @@ If this parameter is not mentioned when a document is created for each video.</d
          #end
 
          ## Check runing commands
+         #set($encodeError = false)
          #set($runingCmdsJSON = [])
          #foreach($cmd in $runingCommands)
             #set($outputFilePath = "${cmd.workDir}/${cmd.outputFile}")
-            #set($progressRep = $videoUploader.checkEncodingProgress($outputFilePath, $cmd.getValue("duration")))
+            #set($errorFilePath = "${cmd.workDir}/${cmd.outputFile.replace('output', 'error')}")
+            #set($progressRep = $videoUploader.checkEncodingProgress($outputFilePath, $errorFilePath, $cmd.getValue("duration")))
             #if($progressRep.status == "end") ## Command complete
                ## Update the command object
                #set($cmdObj = $videoDoc.getObject("XWikiTubeCode.CommandClass", "outputFile", $cmd.outputFile))
@@ -971,6 +991,15 @@ If this parameter is not mentioned when a document is created for each video.</d
                   #set($discard = $videoDoc.save())
                #end
                #set($discard = $runingCmdsJSON.add({"progress": 100, "stream": $cmd.outputFile.replace("_output.txt", "")}))
+            #elseif($progressRep.status == "empty_file") ## FFmpeg Error
+               #set($discard = $runingCmdsJSON.add({"progress": 0, "stream": $cmd.outputFile.replace("_output.txt", ""), "error": $!progressRep.error}))
+               #set($encodeError = true)
+               ## Update the command object
+               #set($cmdObj = $videoDoc.getObject("XWikiTubeCode.CommandClass", "outputFile", $cmd.outputFile))
+               #if($cmdObj)
+                  #set($discard = $cmdObj.set("status", "transcoding_error"))
+                  #set($discard = $videoDoc.save())
+               #end
             #else
                #set($discard = $runingCmdsJSON.add({"progress": $progressRep.progress, "stream": $cmd.outputFile.replace("_output.txt", "")}))
             #end
@@ -983,7 +1012,7 @@ If this parameter is not mentioned when a document is created for each video.</d
             #set($discard = $completeCmdsJSON.add({"progress": 100, "stream": $cmd.outputFile.replace("_output.txt", "")}))
          #end
          ##
-         $jsontool.serialize({"waitingCmds": $waitingCmdsJSON, "completeCmds": $completeCmdsJSON, "runingCmds": $runingCmdsJSON})
+         $jsontool.serialize({"encodeError": $encodeError, "waitingCmds": $waitingCmdsJSON, "completeCmds": $completeCmdsJSON, "runingCmds": $runingCmdsJSON})
       #end
    #elseif($action == 'attachEncodedFiles')
       #if("$!request.videoDocRef" != '' &amp;&amp; $xwiki.exists($request.videoDocRef) &amp;&amp; "$!request.videoName" != '')
