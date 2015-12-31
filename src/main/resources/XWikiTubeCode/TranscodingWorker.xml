@@ -170,6 +170,7 @@
 
 def videoUploader = xwiki.parseGroovyFromPage("XWikiTubeCode.VideoUploadGroovy");
 videoUploader.init(xwiki, xcontext, services);
+def lineSep = System.getProperty("line.separator");
 def xwql = "select doc.fullName, command.cmd, command.workDir, command.outputFile, command.duration, video.name from Document doc, doc.object(XWikiTubeCode.CommandClass) as command, doc.object(XWikiTubeCode.MediaClass) as video where";
 xwql += " doc.fullName &lt;&gt; 'XWikiTubeCode.CommandTemplate'";
 xwql += " and video.original = '1' and video.encoded = '0'";
@@ -180,6 +181,7 @@ def runningCMDsxwql = xwql + " and command.status = 'transcoding' order by comma
 def runningCommands = services.query.xwql(runningCMDsxwql).execute();
 for(command in runningCommands){
    def videoDocRef = command[0];
+   def cmd = command[1];
    def workDir = command[2];
    def outputFile = command[3];
    def duration = command[4];
@@ -194,6 +196,7 @@ for(command in runningCommands){
       if(cmdObj){
          cmdObj.set("status", "complete");
          videoDoc.save();
+         videoUploader.logger.info(lineSep + "FFmpeg command successfully completed «" + cmd + "» , document=" + videoDocRef + ", video=" + videoName + lineSep);
       }
    }
    else if(progressRep.status == "empty_file"){ // FFmpeg error
@@ -202,6 +205,7 @@ for(command in runningCommands){
       if(cmdObj){
          cmdObj.set("status", "transcoding_error");
          videoDoc.save();
+         videoUploader.logger.severe(lineSep + "FFmpeg command error «" + cmd + "» , document=${videoDocRef}, video=" + videoName + ", error=" + progressRep.error + lineSep);
       }
    }
    else if(progressRep.status == "output_file_not_found"){
@@ -244,6 +248,7 @@ if(ffmpeg &amp;&amp; !ffmpegRunning){
                // Start the command
                videoUploader.commandRunner.run(["bash", "-c", cmd], '', 2147483647);
                stop = true;
+               videoUploader.logger.info(lineSep + "Start FFmpeg command «" + cmd + "» , document=" + videoDocRef + ", video=" + videoName + lineSep);
             }
             else {
               // Set the command status to noaudiostream
@@ -256,6 +261,7 @@ if(ffmpeg &amp;&amp; !ffmpegRunning){
                // Start the command
                videoUploader.commandRunner.run(["bash", "-c", cmd], '', 2147483647);
                stop = true;
+               videoUploader.logger.info(lineSep + "Start FFmpeg command «" + cmd + "» , document=" + videoDocRef + ", video=" + videoName + lineSep);
             }
             else {
                // Set the command status to novideostream
@@ -279,6 +285,7 @@ if(ffmpeg &amp;&amp; !ffmpegRunning){
             def manifestCmd = videoUploader.mediaTranscoder.generateDASHManifestCommand(workDir);
             def rep = videoUploader.commandRunner.run(["bash", "-c", manifestCmd], '', 2147483647);
             stop = true;
+            videoUploader.logger.info(lineSep + "Start FFmpeg command «" + cmd + "» , document=" + videoDocRef + ", video=" + videoName + lineSep);
             // Update the status/cmd properties of the command object
             def cmdObj = videoDoc.getObject("XWikiTubeCode.CommandClass", "outputFile", outputFile);
             if(cmdObj){
@@ -305,7 +312,14 @@ for(command in completeCommands){
    def videoName = command[1];
    def videoDir = command[2];
    // Start attaching files
-   videoUploader.attachEncodingFilesToDoc(videoDir, videoDocRef, videoName);
+   def rep = videoUploader.attachEncodingFilesToDoc(videoDir, videoDocRef, videoName);
+   if(rep){
+      videoUploader.logger.info(lineSep + "Attaching encoded files to document success: document=" + videoDocRef + ", video=" + videoName + lineSep);
+   }
+   else
+   {
+      videoUploader.logger.info(lineSep + "Attaching encoded files to document success: document=" + videoDocRef+ ", video=" + videoName + lineSep);
+   }
 }</script>
     </property>
     <property>

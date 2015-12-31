@@ -902,7 +902,13 @@ If this parameter is not mentioned when a document is created for each video.</d
       #if("$!request.videoDocRef" != '' &amp;&amp; $xwiki.exists($request.videoDocRef) &amp;&amp; "$!request.videoName" != '')
          #set($videoDocRef = $request.videoDocRef)
          #set($videoName = $request.videoName)
+         #set($newLine = $escapetool.getNewline())
          #set($rep = $videoUploader.encodeAttachmentVideo($videoDocRef, $videoName))
+         #if($rep)
+            $videoUploader.logger.info("${newLine}Video encoding initialization phase succeed, document=${videoDocRef}, video=${videoName}${newLine}")
+         #else
+            $videoUploader.logger.severe("${newLine}Video encoding initialization phase has failed, document=${videoDocRef}, video=${videoName}${newLine}")
+         #end
          {"initStatus": $rep.ret, "error": "$!rep.error"}
       #end
    #elseif($action == 'videoEncode')
@@ -919,6 +925,7 @@ If this parameter is not mentioned when a document is created for each video.</d
          #set($runingCommands = $videoDoc.getObjects("XWikiTubeCode.CommandClass", "status", "transcoding"))
          #set($transcodingErrorCommands = $videoDoc.getObjects("XWikiTubeCode.CommandClass", "status", "transcoding_error"))
          #set($discard = $runingCommands.addAll($transcodingErrorCommands))
+         #set($newLine = $escapetool.getNewline())
 
          ## Check waiting commands
          #set($waitingCmdsJSON = [])
@@ -937,6 +944,7 @@ If this parameter is not mentioned when a document is created for each video.</d
                      #if($videoUploader.mediaTranscoder.hasAudioStream($sourceVideoPath))
                         ## Start the command
                         #set($rep = $videoUploader.commandRunner.run(["bash", "-c", $nextCmd.getValue("cmd")], '', 2147483647))
+                        $videoUploader.logger.info("${newLine}Start FFmpeg command «${nextCmd.getValue('cmd')}» , document=${videoDocRef}, video=${videoName}${newLine}")
                      #else
                         ## Update the command status to complete
                         #set($commandStatus = "noaudiostream")
@@ -946,6 +954,7 @@ If this parameter is not mentioned when a document is created for each video.</d
                      #if($videoUploader.mediaTranscoder.hasVideoStream($sourceVideoPath))
                         ## Start the command
                         #set($rep = $videoUploader.commandRunner.run(["bash", "-c", $nextCmd.getValue("cmd")], '', 2147483647))
+                        $videoUploader.logger.info("${newLine}Start FFmpeg command «${nextCmd.getValue('cmd')}» , document=${videoDocRef}, video=${videoName}${newLine}")
                      #else
                         ## Update the command status to complete
                         #set($commandStatus = "novideostream")
@@ -962,6 +971,7 @@ If this parameter is not mentioned when a document is created for each video.</d
                   ## Generate the manifest command and update the command object
                   #set($manifestCmd = $videoUploader.mediaTranscoder.generateDASHManifestCommand($nextCmd.getValue("workDir")))
                   #set($rep = $videoUploader.commandRunner.run(["bash", "-c", $manifestCmd], '', 2147483647))
+                  $videoUploader.logger.info("${newLine}Start FFmpeg command «${manifestCmd}» , document=${videoDocRef}, video=${videoName}${newLine}")
                   ## Update the status/cmd properties of the command object
                   #set($cmdObj = $videoDoc.getObject("XWikiTubeCode.CommandClass", "outputFile", $nextCmd.outputFile))
                   #if($cmdObj)
@@ -989,6 +999,7 @@ If this parameter is not mentioned when a document is created for each video.</d
                #if($cmdObj)
                   #set($discard = $cmdObj.set("status", "complete"))
                   #set($discard = $videoDoc.save())
+                  $videoUploader.logger.info("${newLine}FFmpeg command successfully completed «${cmd.getValue('cmd')}» , document=${videoDocRef}, video=${videoName}${newLine}")
                #end
                #set($discard = $runingCmdsJSON.add({"progress": 100, "stream": $cmd.outputFile.replace("_output.txt", "")}))
             #elseif($progressRep.status == "empty_file") ## FFmpeg Error
@@ -999,6 +1010,7 @@ If this parameter is not mentioned when a document is created for each video.</d
                #if($cmdObj)
                   #set($discard = $cmdObj.set("status", "transcoding_error"))
                   #set($discard = $videoDoc.save())
+                  $videoUploader.logger.severe("${newLine}FFmpeg command error «${cmd.getValue('cmd')}» , document=${videoDocRef}, video=${videoName}, error=$!{progressRep.error}${newLine}")
                #end
             #else
                #set($discard = $runingCmdsJSON.add({"progress": $progressRep.progress, "stream": $cmd.outputFile.replace("_output.txt", "")}))
@@ -1020,10 +1032,16 @@ If this parameter is not mentioned when a document is created for each video.</d
          #set($videoName = $request.videoName)
          #set($videoDoc = $xwiki.getDocument($videoDocRef))
          #set($originalVideoObj = $videoDoc.getObject("XWikiTubeCode.MediaClass", "original", 1))
+         #set($newLine = $escapetool.getNewline())
          #if($originalVideoObj &amp;&amp; $originalVideoObj.getValue("name") == $videoName &amp;&amp; $originalVideoObj.getValue("encoded") != 1)
             ## Start files attachments
             #set($videoDir = $originalVideoObj.getValue("dirPath"))
             #set($rep = $videoUploader.attachEncodingFilesToDoc($videoDir, $videoDocRef, $videoName))
+            #if($rep)
+               $videoUploader.logger.info("${newLine}Attaching encoded files to document success: document=$videoDocRef, video=${videoName}${newLine}")
+            #else
+               $videoUploader.logger.severe("${newLine}Attaching encoded files to document fails: document=$videoDocRef, video=${videoName}${newLine}")
+            #end
             $rep
          #end
       #end

@@ -55,6 +55,7 @@ import org.apache.commons.io.FileUtils;
 import javax.activation.MimetypesFileTypeMap;
 import org.xwiki.environment.Environment;
 import java.util.Date;
+import java.util.logging.Logger;
 
 class VideoUploadClass
 {
@@ -70,6 +71,7 @@ class VideoUploadClass
    def userXWikiTubeDir;
    FilenameUtils fileNameUtils;
    FileUtils FileUtils;
+   Logger logger;
 
    /** Initialize the class */
    void init(xwiki, xcontext, services)
@@ -84,6 +86,7 @@ class VideoUploadClass
       this.mediaTranscoder.init(xwiki, xcontext, services);
       this.fileNameUtils = new FilenameUtils();
       this.fileUtils = new FileUtils();
+      this.logger = Logger.getLogger("");
       // Check if there is an XWikiTube directory in the file system for the current user, if not create it
       Object env = services.component.getInstance(Environment.class);
       File tmpDir = env.getTemporaryDirectory();
