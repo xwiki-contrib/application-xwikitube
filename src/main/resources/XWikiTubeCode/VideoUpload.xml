@@ -222,7 +222,7 @@ function checkVideoEncodingProcess(videoDocRef, videoName){
    var resultsContainer = $("#encoding-progress");
    var timer = setInterval(function(){
       $.ajax({
-         url: videoEncodeURL + "&amp;videoDocRef=" + videoDocRef + "&amp;videoName=" + videoName,
+         url: videoEncodeURL + "&amp;videoDocRef=" + encodeURIComponent(videoDocRef) + "&amp;videoName=" + encodeURIComponent(videoName),
          dataType: 'json'
       })
       .done(function(rep){
@@ -246,7 +246,7 @@ function checkVideoEncodingProcess(videoDocRef, videoName){
             // Attach the generated video/audio/manifest files to the document
             $(resultsContainer).append('&lt;div&gt;' + displayAjaxLoader() + ' ' + messages.attach_files + ' ...&lt;/div&gt;');
             $.ajax({
-               url: ajaxActionsURL + '&amp;action=attachEncodedFiles'  + "&amp;videoDocRef=" + videoDocRef + "&amp;videoName=" + videoName,
+               url: ajaxActionsURL + '&amp;action=attachEncodedFiles'  + "&amp;videoDocRef=" + encodeURIComponent(videoDocRef) + "&amp;videoName=" + encodeURIComponent(videoName),
                dataType: 'json'
             }).done(function(rep){
                if(rep){
@@ -645,7 +645,7 @@ $("body").on("click", ".show-encoding-error", function(event){
 #set($discard = $xwiki.ssx.use("XWikiTubeCode.VideoUpload"))
 ###set($actionURL = $xwiki.getURL("XWikiTubeCode.VideoUpload", "view", "xpage=plain&amp;action=uploadVideo"))
 #set($actionURL = $doc.getURL("upload"))
-#set($xredirectURL = $xwiki.getURL("XWikiTubeCode.VideoUpload", "view", "xpage=plain&amp;action=selectVideo&amp;videoDocRef=${doc.getDocumentReference()}"))
+#set($xredirectURL = $xwiki.getURL("XWikiTubeCode.VideoUpload", "view", "xpage=plain&amp;action=selectVideo&amp;videoDocRef=${escapetool.url($doc.getDocumentReference())}"))
 #set($videoUploader = $xwiki.parseGroovyFromPage("XWikiTubeCode.VideoUploadGroovy"))
 #set($discard = $videoUploader.init($xwiki, $xcontext, $services))
 ## Check FFmpeg installation
