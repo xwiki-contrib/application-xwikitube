@@ -93,6 +93,7 @@
     <groupId>org.xwiki.contrib</groupId>
     <artifactId>macro-video</artifactId>
     <version>1.10</version>
+    <type>xar</type>
    </dependency>
   </dependencies>
 </project>
