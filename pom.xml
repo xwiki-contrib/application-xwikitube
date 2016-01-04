@@ -89,5 +89,10 @@
     <artifactId>api-commandrunner</artifactId>
     <version>1.2</version>
    </dependency>
+   <dependency>
+    <groupId>org.xwiki.contrib</groupId>
+    <artifactId>macro-video</artifactId>
+    <version>1.10</version>
+   </dependency>
   </dependencies>
 </project>
