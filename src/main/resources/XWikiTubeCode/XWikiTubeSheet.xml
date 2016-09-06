@@ -345,7 +345,7 @@
     </property>
   </object>
   <content>{{velocity}}
-{{html wiki="true"}}
+{{html wiki="true" clean="false"}}
 #set ($discard = $doc.use('XWikiTubeCode.XWikiTubeClass'))
 #set ($discard = $services.localization.use('document', 'XWikiTubeCode.XWikiTubeTranslations'))
 #if ($xcontext.action == "view") 
@@ -421,7 +421,7 @@
                    &lt;div class="username"&gt;$xwiki.getUserName($doc.getAuthorReference())&lt;/div&gt;
                    &lt;/div&gt;
                    &lt;div class="share-blk"&gt;
-                      &lt;button type="button" class="btn btn-xs" class="integrate-btn"&gt;
+                      &lt;button type="button" class="btn btn-xs integrate-btn"&gt;
                          &lt;span class="glyphicon glyphicon-share-alt" aria-hidden="true"&gt;&lt;/span&gt; Integrate the video in your wiki page
                       &lt;/button&gt;
                       &lt;div class="embed-code" style="display: none;"&gt;
