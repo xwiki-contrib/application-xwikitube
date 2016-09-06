@@ -171,7 +171,7 @@
 def videoUploader = xwiki.parseGroovyFromPage("XWikiTubeCode.VideoUploadGroovy");
 videoUploader.init(xwiki, xcontext, services);
 def lineSep = System.getProperty("line.separator");
-def xwql = "select doc.fullName, command.cmd, command.workDir, command.outputFile, command.duration, video.name from Document doc, doc.object(XWikiTubeCode.CommandClass) as command, doc.object(XWikiTubeCode.MediaClass) as video where";
+def xwql = "select doc.fullName, command.cmd, command.workDir, command.outputFile, command.duration, video.name, command.startTime from Document doc, doc.object(XWikiTubeCode.CommandClass) as command, doc.object(XWikiTubeCode.MediaClass) as video where";
 xwql += " doc.fullName &lt;&gt; 'XWikiTubeCode.CommandTemplate'";
 xwql += " and video.original = '1' and video.encoded = '0'";
 
@@ -300,7 +300,7 @@ if(ffmpeg &amp;&amp; !ffmpegRunning){
 }
 
 // Manage complete commands (attach files to documents)
-def completeCMDsxwql = "select distinct doc.fullName, video.name, video.dirPath from Document doc, doc.object(XWikiTubeCode.MediaClass) as video, doc.object(XWikiTubeCode.CommandClass) as command where";
+def completeCMDsxwql = "select distinct doc.fullName, video.name, video.dirPath, command.startTime from Document doc, doc.object(XWikiTubeCode.MediaClass) as video, doc.object(XWikiTubeCode.CommandClass) as command where";
 completeCMDsxwql += " doc.fullName &lt;&gt; 'XWikiTubeCode.CommandTemplate'";
 completeCMDsxwql += " and video.original = '1' and video.encoded = '0'";
 completeCMDsxwql += " and command.status = 'complete' and command.outputFile = 'manifest_output.txt'";
